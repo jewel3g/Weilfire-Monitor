@@ -1,0 +1,179 @@
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+#define smokePin 8
+#define flamePin 2
+#define CrushPin 7
+#define gasPin A3
+#define buzzer 5
+#define sonarTrigger A1
+#define sonarecho A2
+#define data A0
+
+int cheack = 0 , flameRead;
+int crushData, tempData,gasRead;
+int temp=0;
+int count=0;
+
+#include "SIM900.h"
+#include <SoftwareSerial.h>
+#include "inetGSM.h"
+#include "sms.h"
+SMSGSM sms;
+
+
+int numdata;
+boolean started = false;
+char smsbuffer[160];
+char n[20], number[20] = "01730650385";
+
+int i;
+
+#include <SPI.h>
+#include <MFRC522.h>
+
+constexpr uint8_t RST_PIN = 9;     // Configurable, see typical pin layout above
+constexpr uint8_t SS_PIN = 10;     // Configurable, see typical pin layout above
+
+
+void gms() {
+   Serial.println("GSM Shield testing.");
+  lcd.print("GSM Shield testing.");
+  delay(2000);
+  if (gsm.begin(4800)) {
+    Serial.println("\nstatus=READY");
+    lcd.print("Network connected");
+    delay(1000);
+    lcd.clear();
+    started = true;
+  } else
+  {
+  Serial.println("\nstatus=IDLE");
+  lcd.print("No Network");
+    }
+
+  if (started) {
+
+    if (sms.SendSMS(number, "Driving mode is activated")) {
+      Serial.println("\nSMS sent OK");
+      lcd.print("Ready to go");
+      delay(1000);
+    }
+    for (i = 1; i <= 20; i++)
+    {
+      sms.DeleteSMS(i);
+    }
+  }
+  lcd.clear();
+
+}
+
+
+
+
+void setup() {
+
+
+
+  lcd.init();
+ 
+  lcd.backlight();
+ 
+
+
+  lcd.setCursor(0,0);
+  lcd.print("Vehicle accidient");
+
+  lcd.setCursor(0,1);
+  lcd.print("Prevenention");
+
+  
+delay(2000);
+
+
+lcd.clear();
+ 
+  pinMode(smokePin , INPUT);
+  pinMode(flamePin , INPUT);
+  pinMode(CrushPin , INPUT);
+   pinMode(gasPin , INPUT);
+   pinMode(sonarTrigger,OUTPUT);
+   pinMode(sonarecho,INPUT);
+    pinMode(data,INPUT);
+
+}
+
+
+
+
+
+void  crush() {
+  crushData = digitalRead(CrushPin);
+  Serial.println(crushData);
+
+  if (crushData == 1) {
+    lcd.setCursor(8, 0);
+    lcd.print("Crushed!");
+    sms.SendSMS(number, "Your Car Crushed!!  Location:: 22.8453019,89.5325017 Near By Hospital: 22.8858843,89.4337185 ");
+
+  } else {
+    lcd.setCursor(8, 0);
+    lcd.print("        ");
+  }
+}
+
+void Flam() {
+  flameRead = digitalRead(flamePin);
+  Serial.println(flameRead);
+  if (flameRead == 1) {
+    lcd.setCursor(0, 1);
+    lcd.print("Fire!!");
+    sms.SendSMS(number, "Fire On Your Car  Location:: 22.8453019,89.5325017  Near By Hospital: 22.8858843,89.4337185 ");
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("      ");
+  }
+}
+
+void gassensor(){
+  gasRead = digitalRead(gasPin);
+  Serial.print("GasData= ");
+  Serial.println(gasRead);
+  if (gasRead == 0) {
+    lcd.setCursor(0, 2);
+    lcd.print("Gas Leakage!!");
+    sms.SendSMS(number, "Gas Leakage!!  Location:: 22.8453019,89.5325017 Near By Hospital: 22.8858843,89.4337185 ");
+  } else {
+    lcd.setCursor(0, 2);
+    lcd.print("      ");
+  }
+}
+
+void smokeSensor() {
+
+  int smokeRead = digitalRead(smokePin);
+  Serial.println(smokeRead);
+
+  if (smokeRead == 0) {
+    lcd.setCursor(8, 1);
+    lcd.print("Smoke!!");
+    sms.SendSMS(number, "Smoke On Your Car!!  Location:: 22.8453019,89.5325017 Near By Hospital: 22.8858843,89.4337185 ");
+
+    Serial.println("Smoke!!!!!");
+  } else {
+    lcd.setCursor(8, 1);
+    lcd.print("       ");
+  }
+}
+
+
+
+void loop() {
+  gms();
+  double ans;
+  smokeSensor();
+  Flam();
+  crush();
+  gassensor();
+  smokeSensor();  
+}
+
